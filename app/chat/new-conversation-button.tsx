@@ -24,8 +24,19 @@ export function NewConversationButton() {
     <button
       onClick={handleClick}
       disabled={pending}
-      className="w-full bg-black text-white rounded px-3 py-2 text-sm disabled:opacity-50"
+      className="w-full flex items-center justify-center gap-1.5 rounded-md bg-accent text-accent-foreground px-3 py-2 text-sm font-medium transition-colors hover:bg-accent-hover disabled:opacity-50"
     >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        className="size-4"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
       {pending ? "Creating..." : "New chat"}
     </button>
   );
