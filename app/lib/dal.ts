@@ -19,3 +19,60 @@ export const getCurrentUser = cache(async () => {
 
   return user;
 });
+
+/**
+ * Returns the current user's conversations, most recently updated first.
+ * Scoped to session.userId - never accepts a userId from the caller.
+ */
+export async function listConversations() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  return prisma.conversation.findMany({
+    where: { userId: user.id },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
+/**
+ * Creates a new conversation owned by the current user.
+ */
+export async function createConversation(title: string) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  return prisma.conversation.create({
+    data: { userId: user.id, title },
+  });
+}
+
+/**
+ * Returns the conversation only if it exists and belongs to the current
+ * user. Every route that touches a conversation or its messages must go
+ * through this - never look up a Conversation/Message by id alone.
+ */
+export async function getOwnedConversation(conversationId: string) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  return prisma.conversation.findFirst({
+    where: { id: conversationId, userId: user.id },
+  });
+}
+
+/**
+ * Returns the conversation with its messages (oldest first), scoped to the
+ * current user. Returns null if the conversation doesn't exist or isn't
+ * owned by the current user.
+ */
+export async function getConversationWithMessages(conversationId: string) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  return prisma.conversation.findFirst({
+    where: { id: conversationId, userId: user.id },
+    include: {
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
+}
