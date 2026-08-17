@@ -34,6 +34,17 @@ https://compliance-copilot-iota-dun.vercel.app
 - react-markdown
 - remark-gfm
 
+
+## Database Design
+
+The application uses PostgreSQL with Prisma for data persistence.
+
+The main data model consists of users, conversations, and messages. Each user can own multiple conversations, and each conversation can contain multiple messages.
+
+### Entity Relationship Diagram
+
+![Compliance Copilot ER Diagram](./docs/er-diagram.png)
+
 ## Getting Started
 
 ### 1. Clone the repository
