@@ -2,127 +2,154 @@
 
 ## Overview
 
-I used Claude Code as an AI-assisted development tool throughout this take-home project. My goal was to use AI as a development partner rather than letting it make unrestricted decisions or changes.
+I used Claude Code as an AI-assisted development tool throughout this take-home project. I treated AI as a development partner for evaluating options, accelerating implementation, reviewing code, and debugging issues rather than allowing it to make unrestricted decisions or changes.
 
-I used Claude Code to help with architecture planning, implementation suggestions, debugging, and code review. I reviewed the proposed approaches before allowing changes and manually tested the important flows after implementation.
+I remained responsible for the project architecture, technical decisions, security considerations, testing, and final implementation. For major features, I reviewed the proposed approach before making changes and manually verified the important application flows afterward.
 
 ## How I Used Claude Code
 
-At the beginning of each major feature, I asked Claude Code to inspect the current project and propose a small, maintainable architecture before modifying files.
+At the beginning of each major feature, I first considered the requirements and the simplest architecture that would satisfy them. I then used Claude Code to inspect the existing project, compare implementation options, identify potential issues, and help implement the selected approach.
 
-For example, before implementing authentication, I asked Claude to compare a custom JWT-based approach with a full authentication framework and explain the trade-offs. I chose a simple email/password flow using bcryptjs, jose, httpOnly cookies, and server-side user checks because it fit the scope of the assignment and kept the implementation easy to understand.
+For authentication, I evaluated a custom JWT-based approach against using a full authentication framework. I used Claude Code to help compare the trade-offs, then chose a lightweight email/password flow using bcryptjs, jose, httpOnly cookies, and server-side authorization checks because it matched the scope of the assignment and kept the implementation easy to understand.
 
-For the AI chat feature, I asked Claude to explain the full request flow before coding:
+For the AI chat feature, I designed the request flow around authentication, ownership, persistence, and failure handling:
 
-user message → authentication check → ownership check → save message → load history → call Claude API → save assistant response → return response
+`user message → authentication check → ownership check → save message → load conversation history → call Claude API → save assistant response → return response`
 
-I also used Claude Code to review conversation ownership and make sure all protected database queries were scoped to the authenticated user.
+I used Claude Code to review this flow and help implement the supporting route handlers and server-side utilities.
+
+I also used Claude Code during code review to verify that conversation access was always scoped to the authenticated user and that sensitive values such as the database connection string, authentication secret, and Anthropic API key remained server-side.
 
 ## What I Delegated to AI
 
-I used Claude Code to help with:
+I used Claude Code to assist with:
 
-- proposing the Prisma data model
-- reviewing authentication architecture
+- evaluating the Prisma data model
+- comparing authentication approaches
 - creating small server-side helpers
-- implementing route handlers
+- implementing API route handlers
 - integrating the Anthropic SDK
-- building the initial chat UI
-- improving the chat layout
-- adding Markdown rendering
-- debugging development environment issues
-- reviewing security and ownership checks
+- building the initial chat interface
+- improving the chat layout and user experience
+- adding Markdown rendering for assistant responses
+- reviewing authentication and conversation ownership checks
+- diagnosing development and deployment issues
+- reviewing implementation decisions for unnecessary complexity
 
-I did not simply accept all AI-generated changes. I reviewed the proposed design, tested the application manually, and asked Claude to explain or revise parts that were unclear or too complex.
+I did not automatically accept AI-generated changes. I reviewed the proposed designs and code, tested the application manually, and revised or simplified suggestions when they did not fit the scope of the project.
 
 ## What I Handled and Verified Myself
 
-I manually reviewed and tested the important application behaviors, including:
+I manually reviewed and tested the application's important behaviors, including:
 
 - user registration
 - login and logout
 - protected route access
+- conversation creation
 - conversation persistence
 - Claude API integration
-- conversation history
+- conversation history across sessions
 - user ownership enforcement
 - direct URL access to another user's conversation
-- UI behavior and Markdown rendering
+- Markdown rendering and chat UI behavior
+- environment variable configuration
+- database migrations
+- production build verification
+- Vercel deployment
 
-I also made decisions about the project scope, including keeping the database model limited to User, Conversation, and Message, avoiding unnecessary session tables, skipping streaming for the first version, and using a simple title based on the first user message.
+I also made decisions about project scope. I kept the database model focused on `User`, `Conversation`, and `Message`, avoided unnecessary session tables, chose a simple conversation-title strategy, and prioritized reliable authentication, authorization, persistence, and error handling over optional features.
 
 ## Where AI Helped Most
 
-Claude Code was most useful for:
+Claude Code was especially useful for quickly comparing implementation approaches and identifying trade-offs before writing code.
 
-- quickly comparing implementation options
-- identifying security concerns
+It also helped with:
+
+- identifying potential security concerns
 - explaining unfamiliar Next.js and Prisma patterns
-- reducing repetitive coding
+- reducing repetitive implementation work
 - reviewing API route structure
-- helping diagnose bugs and local development issues
-- improving the UI without changing working backend logic
+- debugging local development issues
+- diagnosing production build and deployment problems
+- improving the UI without changing working backend behavior
 
-It helped me move faster while still keeping the project understandable.
+This allowed me to move faster while keeping the architecture understandable and focused on the assignment requirements.
 
 ## Where AI Got in the Way
 
-There were also cases where AI introduced friction.
+AI-generated suggestions still required validation.
 
-For example, some generated approaches were more complex than necessary for a small take-home assignment. I intentionally simplified those designs.
+Some proposed approaches were more complex than necessary for a small take-home project, so I intentionally simplified them rather than adding abstractions or dependencies that did not provide enough value.
 
-I also encountered long-running development and lint/build tasks when Claude Code launched shell commands in the background. In those cases, I stopped the automated workflow and ran the development server manually so I could see the output directly.
+I also found that recommendations that appeared reasonable in development sometimes needed additional validation against the actual framework versions and production environment. This project uses Next.js 16 and Prisma 7, so I verified version-specific behavior instead of assuming generated recommendations were correct.
 
-I also found that some AI-generated recommendations needed to be checked against the actual Next.js and Prisma versions in the project. For example, the project uses Next.js 16 and Prisma 7, so I verified the current file conventions and Prisma configuration before continuing.
+Production deployment was a good example. The application worked locally, but deployment exposed additional issues around production builds and Prisma Client generation. I verified the application using a production build, added Prisma Client generation to the deployment installation process, and adjusted the build configuration when the local and deployment environments behaved differently.
+
+This reinforced an important lesson from using AI-assisted development: generated code or recommendations still need to be tested against the real runtime and deployment environment.
 
 ## Design Decisions and Trade-Offs
 
-### Custom authentication
+### Custom Authentication
 
-I used a simple custom email/password authentication flow with bcryptjs and signed JWT cookies.
+I implemented a lightweight email/password authentication system using bcryptjs for password hashing and jose for signed JWT session tokens stored in cookies.
 
-Trade-off:
-A database-backed session system would allow server-side revocation, but a stateless JWT session was simpler and appropriate for this take-home scope.
+**Trade-off:** A database-backed session system or full authentication framework could provide features such as server-side session revocation and additional authentication providers. For this take-home, a stateless JWT-based approach kept the authentication flow small and understandable while still providing protected routes and user-specific data access.
 
-### Full conversation history
+### Conversation Ownership
 
-The application sends the full conversation history to Claude on each request.
+Conversation access is always tied to the authenticated user. Server-side database queries use the authenticated user's ID when retrieving conversations rather than trusting a user ID supplied by the client.
 
-Trade-off:
-This is simple and works well for a small demonstration app, but a production application with very long conversations would eventually need summarization or context management.
+**Trade-off:** This adds authorization checks throughout the data-access layer, but it prevents users from accessing another user's conversations by changing a conversation ID or directly visiting another URL.
 
-### No streaming
+### Full Conversation History
 
-I intentionally implemented complete request/response handling instead of streaming responses.
+The application loads the conversation's messages in chronological order and sends the full conversation history to Claude for each request.
 
-Trade-off:
-Streaming would improve the user experience, but the assignment listed it as optional. I prioritized reliable persistence, authentication, ownership, and error handling first.
+**Trade-off:** This is simple and appropriate for the scale of a take-home application. A production application with long conversations would eventually require context-window management, summarization, or another compaction strategy.
 
-### Simple conversation titles
+### Non-Streaming AI Responses
 
-Conversation titles are generated from the first user message rather than using an additional AI request.
+I implemented complete request/response handling instead of streaming Claude responses.
 
-Trade-off:
-AI-generated titles could be more polished, but the simpler approach avoids extra latency, API usage, and complexity.
+**Trade-off:** Streaming could provide a more responsive chat experience, but it adds complexity around partial responses, persistence, and error handling. I prioritized reliable message persistence and clear failure behavior first.
+
+If the AI request fails, the user's message remains stored, while an incomplete or failed assistant response is not saved as a completed message.
+
+### Simple Conversation Titles
+
+Conversation titles are derived from the first user message rather than generated through an additional AI request.
+
+**Trade-off:** AI-generated titles could be more polished, but using the first message avoids additional API usage, latency, and implementation complexity.
+
+### Server-Side AI Integration
+
+The Anthropic API is called only from the server. The API key is stored in an environment variable and is never exposed to client-side code.
+
+**Trade-off:** All AI requests must pass through the application's server routes, but this provides a clear security boundary and keeps sensitive credentials out of the browser.
 
 ## What I Would Do With More Time
 
-With additional time, I would add:
+With additional time, I would consider adding:
 
 - streaming Claude responses
 - automated unit and integration tests
 - stronger request validation
 - rate limiting
-- password reset
+- password reset functionality
 - conversation deletion and renaming
-- session revocation
+- server-side session revocation
 - pagination for large conversation lists
-- summarization for long chat histories
+- summarization or context management for long conversations
 - more robust production logging and monitoring
-- deployment-specific performance tuning
+- additional mobile UI refinement
+- deployment-specific performance monitoring
+
+For a production compliance application, I would also spend additional time on audit logging, authorization testing, security hardening, and controls around sensitive information sent to the AI provider.
 
 ## Final Thoughts
 
-The most valuable part of using Claude Code was not code generation itself, but the ability to quickly evaluate design options, review implementation decisions, and debug issues.
+Claude Code significantly accelerated implementation, debugging, and iteration, but I found it most valuable as a tool for evaluating options and reviewing engineering decisions rather than as a replacement for engineering judgment.
 
-I treated AI output as a starting point rather than a final answer. I reviewed the code, tested the behavior, and made decisions based on the requirements and the scope of the assignment.
+I remained responsible for the architecture, security decisions, scope, testing, and final implementation. When AI-generated suggestions were unnecessarily complex or did not match the actual behavior of the frameworks and deployment environment, I validated the behavior and adjusted the implementation accordingly.
+
+Overall, using AI allowed me to iterate more quickly while still requiring me to understand, review, test, and take ownership of the code I submitted.
